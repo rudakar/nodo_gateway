@@ -1,0 +1,48 @@
+gateway:
+  id: "truck-01"
+  serial_port: "/dev/ttyACM0"
+  serial_baud: 115200
+
+broker:
+  topic_prefix: "fleet"
+
+db:
+  path: "./data/gateway.db"
+
+# Opcional: si también tienes sensores BLE "típicos" por GATT con Bleak
+sensors: []
+
+# === BLUNO (bluepy) ===
+bluno:
+
+  devices:
+    - name: "Bluno1"
+      address: "B4:99:4C:50:24:FA"
+      sensor_id: "ambiente1"
+      parse: "json"     # intenta json; si falla, se envia 'raw'
+      tx_uuid: "0000dfb1-0000-1000-8000-00805f9b34fb"
+      command_uuid: "0000dfb2-0000-1000-8000-00805f9b34fb"
+      password_ascii: "AT+PASSWORD=DFRobot"
+      uart_ascii: "AT+CURRUART=115200"
+      reconnect_interval: 1 
+      # field_map: { temp: "temp_c", hum: "hum_pct", pres: "pres_hpa" }
+
+    # - name: "Bluno2"
+    #   address: "B4:99:4C:50:2A:C0"
+    #   sensor_id: "ambiente2"
+    #   parse: "json"
+    #   tx_uuid: "0000dfb1-0000-1000-8000-00805f9b34fb"
+    #   command_uuid: "0000dfb2-0000-1000-8000-00805f9b34fb"
+    #   password_ascii: "AT+PASSWORD=DFRobot"
+    #   uart_ascii: "AT+CURRUART=115200"
+    #   reconnect_interval: 1 
+
+    # - name: "Bluno3"
+    #   address: "B4:99:4C:50:2C:E7"
+    #   sensor_id: "ambiente3"
+    #   parse: "json"
+    #   tx_uuid: "0000dfb1-0000-1000-8000-00805f9b34fb"
+    #   command_uuid: "0000dfb2-0000-1000-8000-00805f9b34fb"
+    #   password_ascii: "AT+PASSWORD=DFRobot"
+    #   uart_ascii: "AT+CURRUART=115200"
+    #   reconnect_interval: 1 
