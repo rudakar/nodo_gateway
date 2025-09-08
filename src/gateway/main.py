@@ -7,6 +7,7 @@ from gateway.commands.at import execute_at_testing
 from gateway.commands.diag import execute_diagnostic
 from gateway.commands.gps import execute_gps_test
 from gateway.commands.pub import execute_publish_test
+from gateway.commands.health import execute_health_test
 from gateway.commands.run import run
 from gateway.configuration.logging_loader import configure_logging
 
@@ -38,6 +39,12 @@ def cmd_pub(topic: str, payload: str):
     Ej: gateway pub fleet/truck-01/test '{"ping":"ok"}'
     """
     execute_publish_test(topic, payload)
+
+
+@app.command("health")
+def cmd_health():
+    """Prueba el nuevo comando de health que retorna datos CPSI."""
+    execute_health_test()
 
 
 @app.command("diag")

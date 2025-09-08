@@ -16,6 +16,9 @@ CREATE TABLE IF NOT EXISTS readings (
   sensor_id TEXT,
   payload   TEXT
 );
+
+CREATE INDEX IF NOT EXISTS idx_readings_ts ON readings(ts_ms);
+CREATE INDEX IF NOT EXISTS idx_readings_sensor ON readings(sensor_id);
 """
 
 def now_ms() -> int:

@@ -205,6 +205,15 @@ class ArduinoBridge:
         except Exception:
             return ""
 
+    def send_health_command(self, timestamp: int, read_timeout: float = 10.0) -> str:
+        """Envía el comando <<<HEALTH_TS>>> + timestamp para solicitar datos CPSI."""
+        resp_q: "queue.Queue[str]" = queue.Queue()
+        try:
+            self._cmd_q.put(("HEALTH", (timestamp, float(read_timeout)), resp_q), timeout=1.0)
+            return resp_q.get(timeout=read_timeout + 2.0)
+        except Exception:
+            return ""
+
     def close(self) -> None:
         try:
             if self._running:
@@ -272,6 +281,9 @@ class ArduinoBridge:
                     elif cmd_type == "DIRECT":
                         direct_cmd, rt = data  # type: ignore[misc]
                         response_queue.put(self._do_direct_command(str(direct_cmd), float(rt))); break
+                    elif cmd_type == "HEALTH":
+                        timestamp, rt = data  # type: ignore[misc]
+                        response_queue.put(self._do_health_command(int(timestamp), float(rt))); break
                 except Exception as e:
                     self._log.warning("Worker error (intent %d/2): %s", attempt + 1, e)
                     if attempt == 0:
@@ -286,7 +298,7 @@ class ArduinoBridge:
                                 response_queue.put(None)
                             elif cmd_type == "PUBLISH":
                                 response_queue.put(False)
-                            elif cmd_type in ("AT", "DIRECT"):
+                            elif cmd_type in ("AT", "DIRECT", "HEALTH"):
                                 response_queue.put("")
                         except Exception:
                             pass
@@ -362,6 +374,26 @@ class ArduinoBridge:
             last = time.time()
         return "\n".join(lines)
 
+    def _do_health_command(self, timestamp: int, read_timeout: float) -> str:
+        """Implementa el protocolo <<<HEALTH_TS>>> + timestamp."""
+        self._write_line("<<<HEALTH_TS>>>")
+        time.sleep(0.05)  # pequeño delay para que el Arduino procese
+        self._write_line(str(timestamp))
+        
+        end = time.time() + max(8.0, read_timeout)
+        lines: List[str] = []
+        last = time.time()
+        while time.time() < end:
+            line = self._readline_until(end)
+            if line is None:
+                if lines and (time.time() - last) > 0.2:
+                    break
+                continue
+            self._log.debug("HEALTH <= %r", line)
+            lines.append(line)
+            last = time.time()
+        return "\n".join(lines)
+
     def _do_publish_sync(self, topic: str, payload: str, wait_ok: float) -> bool:
         import re
 
@@ -376,4 +408,4 @@ class ArduinoBridge:
         time.sleep(0.05)
         self._write_line("<<<END>>>")
      
-        return False
+        return True

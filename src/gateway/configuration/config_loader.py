@@ -9,6 +9,7 @@ import yaml
 @dataclass
 class Arduino4GConfiguration:
     """ Configuaración del puerto serie 4G sobre el arduino"""
+    id: str = "1"
     serial_port: str = "/dev/ttyACM0"
     serial_baud: int = 115200
 
@@ -28,6 +29,8 @@ class BlunoDevice:
     name: str
     address: str
     sensor_id: str
+    sensor_type: str
+    sensor_numeric_id: str
     tx_uuid: str
     command_uuid: str 
     password_ascii: str 
@@ -77,6 +80,7 @@ def load_config(path: str = "config.yaml") -> Configuration:
     bl = data.get("bluno", None)
 
     gateway = Arduino4GConfiguration(
+        id=_ensure_str(gw, "id", "1"),
         serial_port=_ensure_str(gw, "serial_port", "/dev/ttyACM0"),
         serial_baud=int(gw.get("serial_baud", 115200)),
     )
@@ -100,6 +104,8 @@ def load_config(path: str = "config.yaml") -> Configuration:
                     name=_ensure_str(d, "name", "Bluno"),
                     address=_ensure_str(d, "address", ""),
                     sensor_id=_ensure_str(d, "sensor_id", "sensor"),
+                    sensor_type=_ensure_str(d, "sensor_type", "amb"),
+                    sensor_numeric_id=_ensure_str(d, "sensor_numeric_id", "a01"),
                     parse=_ensure_str(d, "parse", "json"),
                     field_map=d.get("field_map"),
                     tx_uuid=_ensure_str(d, "tx_uuid", "0000dfb1-0000-1000-8000-00805f9b34fb"),

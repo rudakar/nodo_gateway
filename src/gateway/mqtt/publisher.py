@@ -3,6 +3,7 @@ import json
 import logging
 import queue
 import threading
+import time
 from typing import Any, Dict, Optional
 
 from gateway.bridge import ArduinoBridge
@@ -35,25 +36,48 @@ class MQTTThread( threading.Thread ):
                 item = self.mqtt_queue.get(timeout=1.0)
                 if item:
                     logger.debug("Publicando item a mqtt: %s", item)
-                    topic = f"fleet/1/telemetry/{item.sensor_id}"
-                    ts_ms=now_ms()
-                    payload = json.dumps(
-                        {
-                            "gas": int(item.gas),
+                    
+                    # Nueva estructura de topic: fleet/<id_gateway>/<tipo_sensor>/<id_sensor>
+                    topic = f"fleet/{self.gateway_id}/{item.sensor_type}/{item.sensor_numeric_id}"
+                    
+                    # Nuevo payload según el tipo de sensor
+                    if item.sensor_type == "door":
+                        # Sensor de puerta: lux y delta_g
+                        payload_data = {
+                            "ts": item.ts_ms,
+                            "lux": round(item.lux, 2) if item.lux is not None else 0.0,
+                            "delta_g": round(item.delta_g, 2) if item.delta_g is not None else 0.0,
+                        }
+                    else:
+                        # Sensor de ambiente: temp, hum, pres
+                        payload_data = {
+                            "ts": item.ts_ms,
                             "temp": round(item.temp, 2),
-                            "sensor_id": item.sensor_id,
-                            "gateway_id": self.gateway_id,
-                        },
-                    separators=(",", ":"),   # sin espacios
-                    ensure_ascii=False       # por si hay UTF-8 en IDs
+                            "hum": round(item.hum, 2),
+                            "pres": round(item.pres, 2),
+                        }
+                    
+                    payload = json.dumps(
+                        payload_data,
+                        separators=(",", ":"),   # sin espacios
+                        ensure_ascii=False       # por si hay UTF-8 en IDs
                     )
+                    
+                    # WORKAROUND: Añadir llave extra para compensar el truncamiento del firmware
+                    payload = payload + "}"
+                    
                     size_bytes = len(payload.encode("utf-8"))
                     logger.info("payload bytes: %d, payload: %s", size_bytes, payload)
-                    self.bridge.publish_lines(topic, payload + "}", wait_ok=-4)
+                    logger.info("topic: %s", topic)
+                    
+                    self.bridge.publish_lines(topic, payload, wait_ok=20)
                     self.mqtt_queue.task_done()
                     logger.info("queue size: %d", self.mqtt_queue.qsize())
             except queue.Empty:
                 continue
+            except Exception as e:
+                logger.error("Error en MQTTThread: %s", e)
+                time.sleep(1)  # Evitar bucles rápidos en caso de error
 
     def make_topic(self, prefix: str, gateway_id: str, kind: str, sensor_id: str) -> str:
         # p. ej. fleet/truck-01/telemetry/ambiente1

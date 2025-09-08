@@ -57,7 +57,7 @@ def run():
     db = initialize_database(cfg.db.path)
     bridge = ArduinoBridge(cfg.gateway.serial_port, cfg.gateway.serial_baud)
 
-    mqtt_publisher_thread = MQTTThread(mqtt_publisher_queue, bridge)
+    mqtt_publisher_thread = MQTTThread(mqtt_publisher_queue, bridge, gateway_id=cfg.gateway.id)
     mqtt_publisher_thread.start()
 
 
@@ -70,19 +70,16 @@ def run():
     for worker in bluno_threads:
         worker.start()
 
-    # health_publisher = HealthThread(bridge, interval=120)
-    # health_publisher.start()
-    # mqtt_connection = MQTTConnection()
-    # mqtt_connection.start()
-
-
+    health_publisher = HealthThread(bridge, interval=30)
+    health_publisher.start()
+    logger.info("health thread arrancado")
 
     signal.pause()
     logger.warning("señal de salida recibida, cerrando hilos...")
     handle_exit_signal(
         bluno_threads = bluno_threads,
         mqtt_connection=mqtt_publisher_thread,
-        health_thread=db_ingester_thread,
+        health_thread=health_publisher,
         db=db
     )
 
@@ -105,6 +102,8 @@ def initialize_bluno_workers(
             name = device_cfg.name,
             address = device_cfg.address,
             sensor_id = device_cfg.sensor_id,
+            sensor_type = device_cfg.sensor_type,
+            sensor_numeric_id = device_cfg.sensor_numeric_id,
             tx_uuid = device_cfg.tx_uuid,
             command_uuid = device_cfg.command_uuid,
             password_ascii = device_cfg.password_ascii,

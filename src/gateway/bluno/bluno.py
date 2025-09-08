@@ -69,7 +69,9 @@ class BlunoWorker(threading.Thread):
         # Config proveniente del YAML/loader
         self.device_name = device.name
         self.address = device.address
-        self.sensor_id = getattr(device, "sensor_id", "bluno")
+        self.sensor_id = device.sensor_id
+        self.sensor_type = device.sensor_type
+        self.sensor_numeric_id = device.sensor_numeric_id
         self.parse = getattr(device, "parse", "raw")
         self.field_map = getattr(device, "field_map", {}) or {}
         self.tx_uuid = device.tx_uuid
@@ -81,6 +83,7 @@ class BlunoWorker(threading.Thread):
         self.db_queue = db_queue
 
         logger.info("BlunoWorker[%s] creado para %s (%s)", self.device_name, self.address, self.sensor_id)
+        logger.info("  sensor_type=%s sensor_numeric_id=%s", self.sensor_type, self.sensor_numeric_id)
         logger.info("  parse=%s field_map=%s", self.parse, self.field_map)
         logger.info("  tx_uuid=%s command_uuid=%s", self.tx_uuid, self.command_uuid)
         logger.info("  password_ascii=%s", self.password_ascii)
@@ -259,22 +262,26 @@ class BlunoWorker(threading.Thread):
                     self.mqtt_queue.put_nowait(
                         MQTTQueueItem(
                             sensor_id=self.sensor_id,
-                            gas=obj["gas"],
-                            temp=obj["temp"],
-                            hum=obj["hum"],
-                            pres=obj["pres"],
+                            sensor_type=self.sensor_type,
+                            sensor_numeric_id=self.sensor_numeric_id,
+                            temp=obj.get("temp", 0.0),
+                            hum=obj.get("hum", 0.0),
+                            pres=obj.get("pres", 0.0),
                             ts_ms=now_ms(),
+                            lux=obj.get("lux"),
+                            delta_g=obj.get("delta_g"),
                         )
                     )
 
                     self.db_queue.put_nowait(
                         SQLiteDatabaseItem(
                             sensor_id=self.sensor_id,
-                            gas=obj["gas"],
-                            temp=obj["temp"],
-                            hum=obj["hum"],
-                            pres=obj["pres"],
+                            temp=obj.get("temp", 0.0),
+                            hum=obj.get("hum", 0.0),
+                            pres=obj.get("pres", 0.0),
                             ts_ms=now_ms(),
+                            lux=obj.get("lux"),
+                            delta_g=obj.get("delta_g"),
                         )
                     )   
                 except json.JSONDecodeError:
