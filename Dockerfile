@@ -8,6 +8,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# 🔧 Instalar SIEMPRE deps de sistema para bluepy
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc make pkg-config \
+    libbluetooth-dev libglib2.0-dev bluez \
+    && rm -rf /var/lib/apt/lists/*
+
 # Instalar Poetry (versionado) sin cache
 RUN pip install --no-cache-dir "poetry==1.8.3"
 
